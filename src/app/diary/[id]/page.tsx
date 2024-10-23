@@ -1,66 +1,67 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { WriteDiaryForm } from "@/components/WriteDiaryForm"
-import { Diary, getDiaries, deleteDiary } from "@/lib/diaryUtils"
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Diary, getDiaries, deleteDiary } from "@/lib/diaryUtils";
+import { getEmotionFeedback } from "@/lib/emotionAnalysis";
 
 export default function DiaryPage() {
-  const [diary, setDiary] = useState<Diary | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const params = useParams()
-  const router = useRouter()
+  const [diary, setDiary] = useState<Diary | null>(null);
+  const router = useRouter();
+  const params = useParams();
+  const id = params?.id as string;
 
   useEffect(() => {
-    const diaries = getDiaries()
-    const foundDiary = diaries.find((d: Diary) => d.id === Number(params.id))
-    if (foundDiary) {
-      setDiary(foundDiary)
-    } else {
-      router.push('/')
+    if (id) {
+      const diaries = getDiaries();
+      const foundDiary = diaries.find((d: Diary) => d.id === parseInt(id));
+      if (foundDiary) {
+        setDiary(foundDiary);
+      } else {
+        router.push("/");
+      }
     }
-  }, [params.id, router])
+  }, [id, router]);
 
   const handleDelete = () => {
     if (diary) {
-      deleteDiary(diary.id)
-      router.push('/')
+      deleteDiary(diary.id);
+      router.push("/");
     }
-  }
+  };
 
-  if (!diary) return <div>Loading...</div>
+  const handleEdit = () => {
+    if (diary) {
+      router.push(`/edit/${diary.id}`);
+    }
+  };
+
+  const handleList = () => {
+    router.push("/");
+  };
+
+  if (!diary) return <div>Loading...</div>;
+
+  const { color, icon: IconComponent } = getEmotionFeedback(diary.emotion);
 
   return (
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{new Date(diary.date).toLocaleDateString()} 일기</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isEditing ? (
-            <WriteDiaryForm diary={diary} />
-          ) : (
-            <>
-              <p className="mb-4">{diary.content}</p>
-              <p className="mb-4">감정: {diary.emotion}</p>
-            </>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Link href="/">
-            <Button variant="outline">홈으로 돌아가기</Button>
-          </Link>
-          {!isEditing && (
-            <div>
-              <Button onClick={() => setIsEditing(true)} className="mr-2">수정</Button>
-              <Button onClick={handleDelete} variant="destructive">삭제</Button>
-            </div>
-          )}
-        </CardFooter>
-      </Card>
+    <div className="p-4">
+      <div className="mb-4 flex items-center">
+        <IconComponent size={24} color={color} className="mr-2" />
+        <h1 className="text-2xl font-bold">{new Date(diary.date).toLocaleDateString()}</h1>
+      </div>
+      <p className="mb-4" style={{ color }}>
+        {diary.content}
+      </p>
+      <p>감정: {diary.emotion}</p>
+      <div className="mt-4 space-x-2">
+        <Button onClick={handleList}>목록</Button>
+        <Button onClick={handleEdit}>수정</Button>
+        <Button onClick={handleDelete} variant="destructive">
+          삭제
+        </Button>
+      </div>
     </div>
-  )
+  );
 }
